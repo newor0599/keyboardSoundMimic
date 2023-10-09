@@ -1,135 +1,85 @@
-import pygame,math,os
-pygame.init()
+import customtkinter as ctk
+from tkinterdnd2 import DND_FILES
+from datetime import datetime
+from time import sleep
+import os
 
-class Text():
-    def __init__(self,text,size,x,y,win):
-        self.img = pygame.font.SysFont("Arial",size).render(text,True,(222,222,222))
-        self.box = self.img.get_rect()
-        self.box.center = (x,y)
-        self.win = win
-    def render(self):
-        self.win.blit(self.img,self.box)
-    
-#slider
-class slider:
-    def __init__(self):
-        self.value =75
-    
-    def logic(self,x,y,width,height,color,win):
-        self.win = win
-        self.color = color
-        self.width = width
-        self.height = height
-        self.mousepos = pygame.mouse.get_pos()
-        self.touch = pygame.mouse.get_pressed()[0]
-        
-        self.frame = pygame.Rect(x-width/2,y-height/2,width,height)
-        self.slider = pygame.Rect(self.frame.left+10,self.frame.top + 10,width-30,height-20)
-        if self.touch and self.frame.collidepoint(self.mousepos) and self.value >= 75:
-            self.value = self.mousepos[0]-self.slider.left
-        if self.value < 75:
-            self.value = 75
-        self.ind = pygame.Rect(0,0,self.slider.h-15,self.slider.h-15)
+#Disable title bar
+Custom_bar = False
 
-    def render(self):
-        if self.value > self.width-20:
-           self.value = self.width-20
-        if self.value < 20:
-            self.value = 20
-        self.slider.w = self.value
-        self.ind.right = self.slider.right-7
-        self.ind.centery = self.slider.centery
-        
-        pygame.draw.rect(self.win,(255,255,255),self.frame,border_radius=999)
-        pygame.draw.rect(self.win,self.color,self.slider,border_radius=999)
-        pygame.draw.ellipse(self.win,(255,255,255),self.ind)
-        
-class button:
-    def __init__(self):
-        self.clicked = False
-        self.action = False
-    def logic(self,x,y,width,height,color,win):
-        self.win = win
-        self.action = False
-        self.mouse_pos = pygame.mouse.get_pos()
-        self.mouse_click = pygame.mouse.get_pressed()[0]
-        self.color = color
-        self.button = pygame.Rect(0,0,width,height)
-        self.button.center = (x,y)
-        if self.button.collidepoint(self.mouse_pos) and self.clicked == False and self.mouse_click:
-            self.clicked = True
-            self.action = True
-        if not self.mouse_click:
-            self.clicked = False
-            
-    def render(self):
-        pygame.draw.rect(self.win,self.color,self.button,border_radius=25)
-
-def main():
-    run = True
-    #Making Screen
-    screen = pygame.display.get_desktop_sizes()[0]
-    os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (screen[0]/2-(screen[0]/2-50),screen[1]/2-(screen[1]/2-50))
-    win = pygame.display.set_mode((screen[0]-100,screen[1]-100),flags=pygame.RESIZABLE,vsync=1)
-
-    #Change screen name and icon
-    pygame.display.set_caption("Keyboard sound configuration")
-    icon = pygame.image.load("icon3.png")
-    pygame.display.set_icon(icon)
-
-    #Slider here
-    volume_slider = slider()
-
-    #Button here
-    launch = button()
-
-    #Main code
-    while run:
-        w,h = pygame.display.get_window_size()
-        win.fill((30,30,30))
+#file type
+file_type_strict = "mp3"
 
 
-        #text here
-        inst = Text("Drag and drop your keyboard sound here :D",20,w/2,h/4,win)
-        vol = Text(f'Volume: {math.floor(0.3278688525*(volume_slider.value-75))}',20,w/2,h/2.5,win)
-        f = open("volume.txt","w")
-        f.write(str(math.floor(0.3278688525*(volume_slider.value-75))))
-        f.close()
-        launch_text = Text("Launch app", 20,w/2,h/2,win)
-        
-        for event in pygame.event.get():
-            if event.type== pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    run = False
-            if event.type == pygame.QUIT:
-                run = False
-            if event.type == pygame.DROPFILE:
-                supported_file_type = ["mp3","wav","ogg"]
-                if set(supported_file_type).intersection(str(event.file).split(".")):
-                    is_import = Text("Import successful :D",20,w/2,h/2,win)
-                    is_import.render()
-                    file_name = str(event.file).split("\\")[-1]
-                    os.system(f'copy "{str(event.file)}" "{os.getcwd()}"')
-                    f = open("song_path.txt","w")
-                    f.write(f"{os.getcwd()}\{file_name}")
-                    f.close()
-                    os.system("taskkill /im pyw.exe /t /f")
-                    os.system("start main.pyw")
+def move_win(e):
+    root.geometry(f'{e.x_root}+{e.y_root}')
 
-        #Slider setting
-        volume_slider.logic(w/2,h/2.5,400,60,(66,135,245),win)
+def drop(event):
+    file_type = (event.data[1:-1]).split(".")[-1]
+    path = (event.data[1:-1]).replace("/","\\")
+    file_name = path.split("\\")[-1]
+    if file_type in ["mp3","wav","ogg"]:
+        try:
+            os.system(rf'del "{os.getcwd()}\main.{file_type_strict}"')
+            os.system(rf'copy "{path}" "{os.getcwd()}"')
+            os.system(rf'ren "{os.getcwd()}\{file_name}" "main.{file_type_strict}"')
+            label.configure(text="Sound effect updated!")
+        except:
+            label.configure(text="There was an error reading the file, please check the file")
+    else:
+        label.configure(text="Try another file D:")
 
-        #Button Logic
-        launch.logic(w/2,h/2,120,40,(66,135,245),win)
-        if launch.action:
-            os.system("taskkill /im pyw.exe /t /f")
-            os.system("start main.pyw")
+ctk.set_appearance_mode("system")
+def msg(label_name,msg):
+    label.configure(text="Copying files...")
+ctk.set_default_color_theme("blue")
 
-        #Render
-        volume_slider.render()
-        inst.render()
-        vol.render()
-        launch.render()
-        launch_text.render()
-        pygame.display.flip()
-main()
+#Window
+
+windowX,windowY = 700,500
+
+root = ctk.CTk()
+root.geometry(f"{windowX}x{windowY}")
+root.title("Mech Key Sound")
+root.columnconfigure((0,1,2),weight=1)
+root.rowconfigure((0,1,2),weight=1)
+if Custom_bar:
+    root.overrideredirect(True)
+
+#Custom title bar
+if Custom_bar:
+    custom_title_bar = ctk.CTkFrame(master=root,corner_radius=20,height=30,width=9999)
+    hide_top_corner = ctk.CTkFrame(master=root,height=10,width=9999)
+    custom_title_bar.columnconfigure((0,1,2,3,4,5,6,7,8,9,10),weight=1)
+    custom_title_bar.rowconfigure(0,weight=1)
+    exit_button = ctk.CTkLabel(master=custom_title_bar,text="x",font=("Century Gothic",20))
+
+#Main
+div = ctk.CTkFrame(master=root,corner_radius=50)
+div.rowconfigure((0,1,2),weight=1)
+div.columnconfigure(0,weight=1)
+label = ctk.CTkLabel(master=div,text="Drag and drop sound file here",font=("Century Gothic",20),wraplength=400)
+drop_zone = ctk.CTkFrame(master=div,corner_radius=20,height=70)
+
+
+#Packing
+label.grid(row=1,column=0)
+div.grid(row=1,column=1,sticky="news")
+if Custom_bar:
+    hide_top_corner.grid(row=0,column=1,sticky="n") 
+    exit_button.grid(row=0,column=10)
+    custom_title_bar.grid(row=0,column=1,sticky="n")
+
+
+#Drag and drop system
+div.drop_target_register(DND_FILES)
+
+#Binds
+div.dnd_bind("<<Drop>>",drop)
+if Custom_bar:
+    custom_title_bar.bind("<B1-Motion>",move_win)
+    hide_top_corner.bind("<B1-Motion>",move_win)
+
+
+#Loop
+root.mainloop()
